@@ -34,9 +34,8 @@ The resnet key-value model preprocesses first into a list of flattened keys and 
 ]
 ```
 
-Then treats the whole key as a token, and tokenises each cahracter individually.
+Then treats the whole key as a token, and tokenises each character individually.
 
 ```
 torch.Tensor(["title", "h", "e", "l", ..., "metadata.address.postcode", "5", "0", "0", "0"])
 ```
-
