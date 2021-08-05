@@ -36,6 +36,10 @@ The resnet key-value model preprocesses first into a list of flattened keys and 
 
 Then treats the whole key as a token, and tokenises each character individually.
 
-```
-torch.Tensor(["title", "h", "e", "l", ..., "metadata.address.postcode", "5", "0", "0", "0"])
+```python
+tokens = ["title", "h", "e", "l", ..., "metadata.address.postcode", "5", "0", "0", "0"]
+
+embedded_sequence: torch.LongTensor = tokeniser.convert_tokens_to_ids(tokens)
+
+logits = key_value_resnet(embedded_sequence)
 ```
