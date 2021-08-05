@@ -24,17 +24,17 @@ To preprocess the input, the resnet key-value model preprocesses first into a li
 [
   { "title": "hello my name is" },
   { "subtitle": "another title" },
-  { "metadata.address.road": "Corner Frome Road and, North Terrace" },
-  { "metadata.address.city": "Adelaide" },
-  { "metadata.address.state": "SA" },
-  { "metadata.address.postcode": "5000" }
+  { "address.road": "Corner Frome Road and, North Terrace" },
+  { "address.city": "Adelaide" },
+  { "address.state": "SA" },
+  { "address.postcode": "5000" }
 ]
 ```
 
 Then treats the whole key as a token, and tokenises each character individually.
 
 ```python
-tokens = ["title", "h", "e", "l", ..., "metadata.address.postcode", "5", "0", "0", "0"]
+tokens = ["title", "h", "e", "l", ..., "address.postcode", "5", "0", "0", "0"]
 
 embedded_sequence: torch.LongTensor = tokeniser.convert_tokens_to_ids(tokens)
 
