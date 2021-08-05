@@ -3,9 +3,9 @@ import string
 from typing import Callable, Iterable, List, Optional, Tuple
 
 from einops.layers.torch import Rearrange, Reduce
-from src.dataset import Json
-from src.tokeniser import Tokeniser
-from src.utils import dfs_unpack_json
+from src.dataset.json_files import Json
+from src.dataset.tokeniser import Tokeniser
+from src.dataset.utils import dfs_unpack_json
 import torch
 import torch.nn as nn
 

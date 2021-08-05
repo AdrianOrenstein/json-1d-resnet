@@ -1,15 +1,19 @@
+from argparse import ArgumentParser
 from dataclasses import dataclass
 import json
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from loguru import logger
 import pytorch_lightning as pl
 import torch
+import glob
 
 Json = Dict[str, Any]
 json_torch_sample = Tuple[torch.LongTensor, torch.LongTensor]
 
+from src.dataset.utils import dfs_unpack_json
+import concurrent.futures
 
 @dataclass
 class JsonSample:
@@ -87,7 +91,8 @@ class JSONDataset(torch.utils.data.Dataset):
     ):
         """Initialization"""
         self.balance_classes = balance_classes
-        self.class_folders = sorted(str(t) for t in data_directory_path.glob("*"))
+        self.data_directory_path = Path(data_directory_path)
+        self.class_folders = sorted(str(t) for t in self.data_directory_path.glob("*"))
 
         self.class_folders = [p for p in self.class_folders]
 
@@ -95,7 +100,7 @@ class JSONDataset(torch.utils.data.Dataset):
             zip(self.class_folders, range(len(self.class_folders)))
         )
 
-        self.dataset_files: List[Path] = self.prep_data(data_directory_path)
+        self.dataset_files: List[Path] = self.prep_data(self.data_directory_path)
 
         self.preprocessing = preprocessing
 
@@ -142,24 +147,65 @@ class JSONDataset(torch.utils.data.Dataset):
 
 
 class JsonDatasetDataModule(pl.LightningDataModule):
+    @staticmethod
+    def add_data_module_specific_args(parent_parser):
+        parser = parent_parser.add_argument_group('JsonDatasetDataModule')
+        parser.add_argument("--train_data_path", type=str)
+        parser.add_argument("--test_data_path", type=str)
+        return parent_parser
+
+    @staticmethod
+    def unpack_flattened_keys(file_path: Path):
+
+        with open(file_path, 'r') as f:
+            sample = json.load(f)
+        
+        return set(key for key, _ in dfs_unpack_json(sample['data']))
+    
+    @staticmethod
+    def generate_flattened_json_schema(list_of_sample_filepaths: List[Path], schema_path: str, write_to_path: bool = True, **kwargs) -> Json:
+        all_keys = set()
+    
+        with concurrent.futures.ProcessPoolExecutor() as executor:
+            futures = [
+                executor.submit(JsonDatasetDataModule.unpack_flattened_keys, filepath)
+                for filepath in list_of_sample_filepaths
+            ]
+
+            for future in concurrent.futures.as_completed(futures):
+                for key in future.result():   
+                    all_keys.add(key)
+        schema = {
+            'schema': list(all_keys)
+        }
+
+        if write_to_path:
+            with open(schema_path, 'w') as f:
+                json.dump(schema, f)
+
+        return schema
+
     def __init__(
         self,
-        train_data_dir: Path,
-        val_data_dir: Path,
         preprocessing: Callable[[Json], List[int]],
         pad_token_id: int,
         batch_size: int,
         sequence_length: int,
-        balance_classes: bool,
+        balance_classes: bool = False,
+        **kwargs: Optional[Any],
     ):
         super().__init__()
-        self.train_data_dir = train_data_dir
-        self.val_data_dir = val_data_dir
         self.preprocessing = preprocessing
         self.pad_token_id = pad_token_id
         self.batch_size = batch_size
         self.sequence_length = sequence_length
         self.balance_classes = balance_classes
+
+        self.sequence_length: int = kwargs.get("sequence_length")
+        self.train_data_dir: Path = kwargs.get("train_data_path")
+        self.test_data_dir: Path = kwargs.get("test_data_path")
+
+        logger.info(f'{self.train_data_dir=}\n{self.test_data_dir=}')
         self.setup()
 
     def setup(self):
@@ -168,15 +214,15 @@ class JsonDatasetDataModule(pl.LightningDataModule):
             preprocessing=self.preprocessing,
             balance_classes=self.balance_classes,
         )
-        self.val_dataset = JSONDataset(
-            data_directory_path=self.val_data_dir,
+        self.test_dataset = JSONDataset(
+            data_directory_path=self.test_data_dir,
             preprocessing=self.preprocessing,
             balance_classes=self.balance_classes,
         )
 
         self.num_classes = len(self.train_dataset.class_folders)
         assert len(self.train_dataset.class_folders) == len(
-            self.val_dataset.class_folders
+            self.test_dataset.class_folders
         )
 
     def train_dataloader(self):
@@ -192,21 +238,9 @@ class JsonDatasetDataModule(pl.LightningDataModule):
             pin_memory=True,
         )
 
-    # def val_dataloader(self):
-    #     return torch.utils.data.DataLoader(
-    #         self.val_dataset,
-    #         batch_size=self.batch_size,
-    #         collate_fn=PadAllDataToLength(
-    #             pad_to_length=self.sequence_length,
-    #             pad_val=self.pad_token_id,
-    #         ),
-    #         num_workers=4,
-    #         pin_memory=True,
-    #     )
-
     def test_dataloader(self):
         return torch.utils.data.DataLoader(
-            self.val_dataset,
+            self.test_dataset,
             batch_size=self.batch_size,
             collate_fn=PadAllDataToLength(
                 pad_to_length=self.sequence_length,
@@ -214,5 +248,31 @@ class JsonDatasetDataModule(pl.LightningDataModule):
             ),
             num_workers=4,
             pin_memory=True,
-            shuffle=True,
         )
+
+
+if __name__ == "__main__":
+    
+    parser = ArgumentParser()
+    parser.add_argument("--schema_path", type=str, required=True)
+    parser.add_argument("--write_to_path", type=bool, required=True)
+    
+    parser = JsonDatasetDataModule.add_data_module_specific_args(parser)
+
+    args = parser.parse_args()
+
+    data_module = JsonDatasetDataModule(
+        # these kwargs aren't used
+        preprocessing = lambda: list,
+        pad_token_id = 0,
+        batch_size = 16,
+        sequence_length = 2**10,
+        **vars(args),
+    )
+
+    
+    all_dataset_files: List[Path] = data_module.train_dataset.dataset_files + data_module.test_dataset.dataset_files
+
+    JsonDatasetDataModule.generate_flattened_json_schema(
+        list_of_sample_filepaths = all_dataset_files, **vars(args)
+    )

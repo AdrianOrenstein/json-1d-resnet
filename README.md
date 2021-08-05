@@ -49,6 +49,19 @@ logits = key_value_resnet(embedded_sequence)
 
 - Keys needs to have been added to the vocabulary of the model, any unknown keys will be assigned the "UNK" token
 
+# Usage
+
+## Json dataset
+
+```bash
+# first generate a schema for the model's vocabulary & the model's nn.Embed, we'll put the schema in the dataset folder
+# this only needs to be run once
+python -m src.dataset.json_files --train_data_path 'data' --test_data_path 'data' --schema_path 'data/schema.json' --write_to_path True
+
+# then run the training script
+python -m train --experiment_name "local_json_1d_resnet"
+```
+
 ## TODO
 
 - [ ] MVP

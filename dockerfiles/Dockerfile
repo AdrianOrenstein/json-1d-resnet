@@ -51,5 +51,8 @@ RUN conda install pytorch-lightning einops flake8-black flake8 isort loguru -c c
 COPY ./setup.py /json_1d_resnet_project/setup.py
 RUN pip install --user --no-cache-dir -e .
 
+# project specific
+RUN conda install -c pytorch torchtext
+
 # Set the default command to python3
 CMD ["python3"]

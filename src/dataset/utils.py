@@ -1,10 +1,5 @@
 from typing import Any, Generator, Tuple
 
-
-def unpack_flattened_keys(sample):
-    return set(key for key, _ in dfs_unpack_json(sample))
-
-
 def dfs_unpack_json(
     parent: Any, branch: str = "", separator: str = "."
 ) -> Generator[Tuple[str, str], None, None]:
