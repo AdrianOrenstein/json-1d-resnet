@@ -1,27 +1,24 @@
 # Json sequence embedding
 
-Given arbitrary JSON input such as:
+Given a JSON input such as:
 
 ```json
-[
-  {
+{
+  "input": {
     "title": "hello my name is",
     "subtitle": "another title",
-    "metadata": [
-      {
-        "address": {
-          "road": "Corner Frome Road and, North Terrace",
-          "city": "Adelaide",
-          "state": "SA",
-          "postcode": 5000
-        }
-      }
-    ]
-  }
-]
+    "address": {
+      "road": "Corner Frome Road and, North Terrace",
+      "city": "Adelaide",
+      "state": "SA",
+      "postcode": 5000
+    }
+  },
+  "label": 1
+}
 ```
 
-The resnet key-value model preprocesses first into a list of flattened keys and values.
+To preprocess the input, the resnet key-value model preprocesses first into a list of flattened keys and values.
 
 ```json
 [
