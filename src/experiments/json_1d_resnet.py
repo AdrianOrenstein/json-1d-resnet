@@ -2,21 +2,20 @@ import copy
 from pathlib import Path
 import string
 from typing import Any, Callable, Dict, List, Optional, Tuple
-
+import json
 from loguru import logger
 import pytorch_lightning as pl
 import pytorch_lightning.metrics as pl_metrics
-from src.dataset import Json, JsonDatasetDataModule
-from src.resnet_key_value import JSONKeyValueResnet_EmbeddingEncoder
+from src.dataset.json_files import Json, JsonDatasetDataModule
+from src.models.resnet_key_value import JSONKeyValueResnet_EmbeddingEncoder
 import torch
+from src.experiments.base import BaseExperiment
 
-
-class ClassificationExperiment(pl.LightningModule):
-    NAME = "resnet"
+class ClassificationExperiment(BaseExperiment):
+    NAME = "local_json_1d_resnet"
     TAGS = {
         "MLFLOW_RUN_NAME": NAME,
-        "dataset": "medical-hypertension",
-        "algorithm": "resnet",
+        "dataset": "local-json",
         "model": "torchvision.models.resnet50_1D",
     }
 
@@ -26,26 +25,19 @@ class ClassificationExperiment(pl.LightningModule):
         parser.add_argument("--learning_rate", type=float, default=0.003)
         parser.add_argument("--batch_size", type=int, default=64)
         parser.add_argument("--sequence_length", type=int, default=16384)
-        parser.add_argument(
-            "--train_data_path", type=str
-        )
-        parser.add_argument(
-            "--val_data_path", type=str
-        )
+        parser.add_argument("--schema_path", type=str, required=True)
         return parent_parser
 
     def __init__(
         self,
-        schema: Json,
         **kwargs: Optional[Any],
     ):
         super().__init__()
 
         self.learning_rate = kwargs.get("learning_rate")
         self.batch_size = kwargs.get("batch_size")
-        self.sequence_length = kwargs.get("sequence_length")
-        self.train_data_path = kwargs.get("train_data_path")
-        self.val_data_path = kwargs.get("val_data_path")
+        self.schema_path = kwargs.get("schema_path")
+        
 
         self.balanced_dataloaders = kwargs.get("balanced_dataset")
 
@@ -58,7 +50,7 @@ class ClassificationExperiment(pl.LightningModule):
             },
         )
 
-        self.schema = self.parse_design_summary_schema(schema)
+        self.schema = self.parse_design_summary_schema(self.schema_path)
 
         self.model = JSONKeyValueResnet_EmbeddingEncoder(
             num_classes=2,
@@ -81,8 +73,10 @@ class ClassificationExperiment(pl.LightningModule):
     def calculate_loss(self, y_hat: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
         return self.loss_fn(y_hat, y)
 
-    def parse_design_summary_schema(self, schema_json: Dict[str, Any]) -> List[str]:
-        return schema_json["schema"]
+    def parse_design_summary_schema(self, schema_path: str) -> List[str]:
+        schema: Dict[str, Any] = json.loads(schema_path)
+
+        return schema["schema"]
 
     def configure_optimizers(self):
         opt = torch.optim.Adam(self.parameters(), lr=self.learning_rate, eps=1e-06)

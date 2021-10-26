@@ -7,7 +7,7 @@ docker run --rm -ti \
     -it \
     --gpus all \
     --ipc host \
-    json-1d-resnet-project \
+    adrianorenstein/json-1d-resnet-project \
     /bin/bash -c " \
         black src/ && \
         isort src/ --settings-file=linters/isort.ini && \

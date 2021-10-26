@@ -24,17 +24,17 @@ To preprocess the input, the resnet key-value model preprocesses first into a li
 [
   { "title": "hello my name is" },
   { "subtitle": "another title" },
-  { "metadata.address.road": "Corner Frome Road and, North Terrace" },
-  { "metadata.address.city": "Adelaide" },
-  { "metadata.address.state": "SA" },
-  { "metadata.address.postcode": "5000" }
+  { "address.road": "Corner Frome Road and, North Terrace" },
+  { "address.city": "Adelaide" },
+  { "address.state": "SA" },
+  { "address.postcode": "5000" }
 ]
 ```
 
 Then treats the whole key as a token, and tokenises each character individually.
 
 ```python
-tokens = ["title", "h", "e", "l", ..., "metadata.address.postcode", "5", "0", "0", "0"]
+tokens = ["title", "h", "e", "l", ..., "address.postcode", "5", "0", "0", "0"]
 
 embedded_sequence: torch.LongTensor = tokeniser.convert_tokens_to_ids(tokens)
 
@@ -48,6 +48,19 @@ logits = key_value_resnet(embedded_sequence)
 ## Cons
 
 - Keys needs to have been added to the vocabulary of the model, any unknown keys will be assigned the "UNK" token
+
+# Usage
+
+## Json dataset
+
+```bash
+# first generate a schema for the model's vocabulary & the model's nn.Embed, we'll put the schema in the dataset folder
+# this only needs to be run once
+python -m src.dataset.json_files --train_data_path 'data' --test_data_path 'data' --schema_path 'data/schema.json' --write_to_path True
+
+# then run the training script
+python -m train --experiment_name "local_json_1d_resnet"
+```
 
 ## TODO
 

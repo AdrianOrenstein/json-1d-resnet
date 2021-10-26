@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
 
-docker build -t json-1d-resnet-project -f dockerfiles/Dockerfile .
+docker build -t adrianorenstein/json-1d-resnet-project -f dockerfiles/Dockerfile .

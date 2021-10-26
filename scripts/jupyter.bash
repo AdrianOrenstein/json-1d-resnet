@@ -8,6 +8,6 @@ docker run --rm -ti \
     -p 8001:8001 \
     --gpus all \
     --ipc host \
-    json-1d-resnet-project \
+    adrianorenstein/json-1d-resnet-project \
     jupyter notebook --ip 0.0.0.0 --port 8001 --no-browser --allow-root
 
