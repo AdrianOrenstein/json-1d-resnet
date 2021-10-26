@@ -7,5 +7,5 @@ docker run --rm -ti \
     -it \
     --gpus all \
     --ipc host \
-    json-1d-resnet-project \
+    adrianorenstein/json-1d-resnet-project \
     ${@:-bash}

@@ -1,0 +1,8 @@
+.data
+mlruns
+.pytest_cache
+dockerfiles
+jupyter_notebooks
+checkpoints
+*.zip
+.data-old

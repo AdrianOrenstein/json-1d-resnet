@@ -40,19 +40,14 @@ RUN curl -sLo ~/miniconda.sh https://repo.anaconda.com/miniconda/Miniconda3-late
     ~/miniconda.sh -b -p ~/miniconda && \
     rm ~/miniconda.sh
 
-# CUDA 11.0-specific steps
-RUN conda install pytorch torchvision cudatoolkit=11.1 -c pytorch -c conda-forge
-
-RUN conda install numpy pandas matplotlib scikit-learn tqdm jupyter ffmpeg -c conda-forge
-
-RUN conda install pytorch-lightning einops flake8-black flake8 isort loguru -c conda-forge 
+# packages
+RUN conda install pytorch torchvision cudatoolkit=11.1 pytorch-lightning \
+    numpy pandas matplotlib scikit-learn tqdm jupyter \
+    einops flake8-black flake8 isort loguru -c pytorch -c conda-forge
 
 # install self as module
 COPY ./setup.py /json_1d_resnet_project/setup.py
 RUN pip install --user --no-cache-dir -e .
-
-# project specific
-RUN conda install -c pytorch torchtext
 
 # Set the default command to python3
 CMD ["python3"]
